@@ -86,7 +86,7 @@ def _install_google_stubs() -> None:
 
 _install_google_stubs()
 
-from julien_python_toolkit.src import google_services
+from julien_python_toolkit import google_services
 
 
 

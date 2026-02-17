@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from julien_python_toolkit.src.log_utilities import DEBUG, INFO, WARNING, Logger
+from julien_python_toolkit.log_utilities import DEBUG, INFO, WARNING, Logger
 
 
 def _clear_logger(name: str) -> None:

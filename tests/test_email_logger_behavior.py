@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import Mock
 
-from julien_python_toolkit.src import email_logger
+from julien_python_toolkit import email_logger
 
 
 
