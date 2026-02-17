@@ -18,7 +18,7 @@ setup(
         "google-auth-httplib2==0.2.0",
         "google-auth-oauthlib==1.2.1",
         "googleapis-common-protos==1.63.2",
-    ]
+    ],
     description='Important code that I reuse through multiple projects. Please see license for allowed use.',
     long_description=long_description,  # Include long description here
     long_description_content_type='text/markdown',  # Set to 'text/markdown' for Markdown files
