@@ -115,11 +115,11 @@ No side effects unless clearly documented.
 - All functions must have type hints.
 - Public functions must have docstrings.
 - No function longer than 80 lines.
-- No file longer than 500 lines.
+- No file longer than 1000 lines.
 - No nested logic deeper than 3 levels.
 - No wildcard imports.
 - Use explicit exceptions.
-- Avoid global state.
+- Avoid global state, except for logging
 
 ---
 
