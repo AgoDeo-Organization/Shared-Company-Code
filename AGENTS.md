@@ -113,7 +113,7 @@ No side effects unless clearly documented.
 - Classes should have a unique purpose/goal
 - Use dependency injection
 - All functions must have type hints.
-- Public functions must have docstrings.
+- All public functions must have Google-style docstrings (with args, returns, raises, ...).
 - No function longer than 80 lines.
 - No file longer than 1000 lines.
 - No nested logic deeper than 3 levels.
@@ -202,7 +202,7 @@ If behavior changes:
 Writing style:
 - Must be written for a **12 year old** to understand.
 - Exception: when technical terms are used (e.g. API, method, function, ...)
-- Valid for docstrings and comments aswell
+- Valid for Google-style docstrings and comments aswell
 
 ---
 
