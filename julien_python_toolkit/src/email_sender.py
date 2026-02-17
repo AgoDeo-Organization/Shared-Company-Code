@@ -35,7 +35,13 @@ class EmailSender:
     """Send emails to a configured list of recipients."""
 
     def __init__(self, sender_email: str, sender_password: str, receiver_emails: list[str]) -> None:
-        """Create SMTP client and connect immediately."""
+        """Create SMTP client and connect immediately.
+
+        Args:
+            sender_email: Email address used to send emails.
+            sender_password: App password used to authenticate with SMTP.
+            receiver_emails: List of destination email addresses.
+        """
 
         self._sender_email = sender_email
         self._sender_password = sender_password
@@ -45,7 +51,10 @@ class EmailSender:
         self._connect_and_login()
 
     def __del__(self) -> None:
-        """Close SMTP connection when object is destroyed."""
+        """Close SMTP connection when object is destroyed.
+
+        This method is best-effort and suppresses expected shutdown errors.
+        """
 
         if self._smtp and self._smtp.sock is not None:
             try:
@@ -114,7 +123,12 @@ class EmailSender:
             self._connect_and_login()
 
     def send_emails(self, subject: str, body: str) -> None:
-        """Send one message to every configured receiver."""
+        """Send one message to every configured receiver.
+
+        Args:
+            subject: Subject line for the outgoing message.
+            body: Body text for the outgoing message.
+        """
 
         for receiver_email in self._receiver_emails:
             self._send_email(receiver_email, subject, body)
