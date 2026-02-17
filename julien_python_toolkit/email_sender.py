@@ -4,12 +4,13 @@
 # explicit permission from the author.
 
 
-import ssl
 import smtplib
+import socket
+import ssl
 import time
 from email.message import EmailMessage
+
 import certifi
-import socket
 
 from . import log_utilities
 
@@ -22,19 +23,29 @@ from . import log_utilities
 
 
 # Setup Logger
-logger = log_utilities.Logger("EmailGroup", "email_group.log", stream_log_level = log_utilities.INFO, file_log_level = log_utilities.DEBUG)
+logger = log_utilities.Logger(
+    "EmailGroup",
+    "email_group.log",
+    stream_log_level=log_utilities.INFO,
+    file_log_level=log_utilities.DEBUG,
+)
 
-class EmailSender():
 
-    def __init__(self, sender_email, sender_password, receiver_emails):
+class EmailSender:
+    """Send emails to a configured list of recipients."""
+
+    def __init__(self, sender_email: str, sender_password: str, receiver_emails: list[str]) -> None:
+        """Create SMTP client and connect immediately."""
 
         self._sender_email = sender_email
         self._sender_password = sender_password
         self._receiver_emails = receiver_emails
-        self._smtp = None
-        self._connect_and_login()  # Establish connection and login
+        self._smtp: smtplib.SMTP_SSL | None = None
 
-    def __del__(self):
+        self._connect_and_login()
+
+    def __del__(self) -> None:
+        """Close SMTP connection when object is destroyed."""
 
         if self._smtp and self._smtp.sock is not None:
             try:
@@ -42,72 +53,74 @@ class EmailSender():
                 logger.info("SMTP connection closed.")
             except smtplib.SMTPServerDisconnected:
                 logger.info("SMTP connection was already closed.")
-            except Exception as e:
-                logger.error(f"Error closing SMTP connection: {e}")
+            except Exception as error:
+                logger.error(f"Error closing SMTP connection: {error}")
 
-    def _connect_and_login_with_retry(self):
+    def _connect_and_login_with_retry(self) -> None:
+        """Retry SMTP login for common transient network failures."""
 
         retries = 0
 
         while retries < 8:
-
             try:
                 self._connect_and_login()
-            
             except Exception as error:
-
                 logger.warn(f"Error connecting and logging in: {error.__class__.__name__}({error}).")
 
-                if isinstance(error, socket.timeout) or isinstance(error, socket.gaierror) or isinstance(error, ssl.SSLError):
-
-                    logger.warn(f"Function '{self._connect_and_login.__name__}' timed out. Retrying. Retry count: {retries + 1}/8. Curent delay: {2 ** (retries + 1)} seconds.")
+                if (
+                    isinstance(error, socket.timeout)
+                    or isinstance(error, socket.gaierror)
+                    or isinstance(error, ssl.SSLError)
+                ):
+                    logger.warn(
+                        f"Function '{self._connect_and_login.__name__}' timed out. "
+                        f"Retrying. Retry count: {retries + 1}/8. Curent delay: {2 ** (retries + 1)} seconds."
+                    )
 
                     retries += 1
-                    delay = 2 ** retries
+                    delay = 2**retries
                     time.sleep(delay)
-
                 else:
                     raise error from error
 
             raise TimeoutError("Exceeded maximum retries.")
 
-    def _connect_and_login(self):
+    def _connect_and_login(self) -> None:
+        """Connect to Gmail SMTP over SSL and authenticate."""
 
         try:
-
             context = ssl.create_default_context()
             context.load_verify_locations(certifi.where())
+
             self._smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context)
             self._smtp.login(self._sender_email, self._sender_password)
+
             logger.info("Connected and logged in to SMTP server.")
+        except Exception as error:
+            logger.error(f"Failed to connect and login: {error}")
+            raise error
 
-        except Exception as e:
-
-            logger.error(f"Failed to connect and login: {e}")
-            raise e
-
-    def _reconnect_if_needed(self):
-
-        # Reconnect to the SMTP server if the connection is lost.
+    def _reconnect_if_needed(self) -> None:
+        """Reconnect to SMTP server if current connection is not healthy."""
 
         try:
+            status = self._smtp.noop() if self._smtp else None
 
-            status = self._smtp.noop()
-
-            if status[0] != 250:
+            if not status or status[0] != 250:
                 raise smtplib.SMTPException("SMTP connection is not healthy")
 
         except (smtplib.SMTPException, AttributeError):
-
             logger.warning("SMTP connection lost, reconnecting...")
             self._connect_and_login()
-    
-    def send_emails(self, subject, body):
+
+    def send_emails(self, subject: str, body: str) -> None:
+        """Send one message to every configured receiver."""
 
         for receiver_email in self._receiver_emails:
             self._send_email(receiver_email, subject, body)
 
-    def _send_email(self, receiver_email, subject, body):
+    def _send_email(self, receiver_email: str, subject: str, body: str) -> None:
+        """Send one email to one recipient."""
 
         em = EmailMessage()
         em["From"] = self._sender_email
@@ -115,12 +128,16 @@ class EmailSender():
         em["Subject"] = subject
         em.set_content(body)
 
-        self._reconnect_if_needed() # Ensure connection is active before sending
+        self._reconnect_if_needed()
 
         try:
+            if self._smtp is None:
+                raise smtplib.SMTPException("SMTP connection is not initialized")
+
             start_time = time.time()
             self._smtp.send_message(em)
             seconds_elapsed = time.time() - start_time
+
             logger.info(f"Sent email to '{receiver_email}' in {seconds_elapsed:.2f} seconds.")
-        except Exception as e:
-            logger.error(f"Failed to send email to '{receiver_email}': {e}")  
+        except Exception as error:
+            logger.error(f"Failed to send email to '{receiver_email}': {error}")

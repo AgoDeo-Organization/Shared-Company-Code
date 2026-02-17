@@ -6,8 +6,14 @@
 
 import os
 
-def path_to_this_file(file):
+
+def path_to_this_file(file: str) -> str:
+    """Return the absolute parent directory path for a file path."""
+
     return os.path.dirname(os.path.realpath(file))
 
-def join(*args):
+
+def join(*args: str) -> str:
+    """Join path parts into a single normalized path string."""
+
     return os.path.join(*args)
