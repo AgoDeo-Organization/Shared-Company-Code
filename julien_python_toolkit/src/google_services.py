@@ -53,7 +53,14 @@ class GoogleServices:
 
     @staticmethod
     def retry_if_network_error(func: Callable[..., Any]) -> Callable[..., Any]:
-        """Retry wrapped calls when temporary network/server errors occur."""
+        """Retry wrapped calls when temporary network or server errors occur.
+
+        Args:
+            func: Callable to wrap with retry behavior.
+
+        Returns:
+            Wrapped callable that retries on transient network failures.
+        """
 
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             retries = 0
@@ -105,7 +112,12 @@ class GoogleServices:
         return wrapper
 
     def __init__(self, path_to_credentials_file: str | None = None, path_to_token_file: str | None = None) -> None:
-        """Create Google service clients and open authenticated sessions."""
+        """Create Google service clients and open authenticated sessions.
+
+        Args:
+            path_to_credentials_file: Optional path to a Google OAuth credentials file.
+            path_to_token_file: Optional path to the cached OAuth token file.
+        """
 
         if path_to_credentials_file is None:
             path_to_credentials_file = self._DEFAULT_PATH_TO_CREDENTIALS_FILE
@@ -120,7 +132,11 @@ class GoogleServices:
         self.open()
 
     def open(self) -> None:
-        """Authenticate and initialize Google Sheets and Drive clients."""
+        """Authenticate and initialize Google Sheets and Drive clients.
+
+        Raises:
+            Exception: If authentication or client initialization fails.
+        """
 
         try:
             credentials = None
@@ -151,7 +167,15 @@ class GoogleServices:
 
     @retry_if_network_error
     def batch_update_spreadsheet(self, spreadsheet_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        """Run a batchUpdate request on a Google spreadsheet."""
+        """Run a ``batchUpdate`` request on a Google spreadsheet.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            body: Request payload accepted by Google Sheets ``batchUpdate``.
+
+        Returns:
+            API response payload returned by Google Sheets.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -170,7 +194,13 @@ class GoogleServices:
 
     @retry_if_network_error
     def write_csv_to_sheet(self, csv_data: list[list[Any]], spreadsheet_id: str, sheet_name: str) -> None:
-        """Write a 2D value list to a sheet starting at cell A1."""
+        """Write a 2D value list to a sheet starting at cell ``A1``.
+
+        Args:
+            csv_data: Table-like list of rows and values.
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to update.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -195,7 +225,14 @@ class GoogleServices:
         sheet_name: str,
         range_name: str,
     ) -> None:
-        """Write a 2D value list to a specific sheet range."""
+        """Write a 2D value list to a specific sheet range.
+
+        Args:
+            csv_data: Table-like list of rows and values.
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to update.
+            range_name: A1-style range inside ``sheet_name``.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -219,7 +256,16 @@ class GoogleServices:
         values: list[list[list[Any]]],
         spreadsheet_id: str,
     ) -> dict[str, Any]:
-        """Batch update many ranges in one spreadsheet API call."""
+        """Batch update many ranges in one spreadsheet API call.
+
+        Args:
+            ranges: List of A1-style ranges to update.
+            values: Data payload for each corresponding range.
+            spreadsheet_id: Target spreadsheet id.
+
+        Returns:
+            API response payload returned by Google Sheets.
+        """
 
         # TODO: Modify to use 'batch_update_spreadsheet' function to avoid code duplication.
 
@@ -251,7 +297,15 @@ class GoogleServices:
 
     @retry_if_network_error
     def read_csv_from_sheet(self, spreadsheet_id: str, sheet_name: str) -> list[list[Any]]:
-        """Read values from an entire sheet and return a 2D list."""
+        """Read values from an entire sheet and return a 2D list.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to read.
+
+        Returns:
+            A list of rows read from the requested sheet.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -270,7 +324,16 @@ class GoogleServices:
 
     @retry_if_network_error
     def read_csv_from_range(self, spreadsheet_id: str, sheet_name: str, range_name: str) -> list[list[Any]]:
-        """Read values from one sheet range and return a 2D list."""
+        """Read values from one sheet range and return a 2D list.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to read.
+            range_name: A1-style range inside ``sheet_name``.
+
+        Returns:
+            A list of rows read from the requested range.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -289,7 +352,14 @@ class GoogleServices:
 
     @retry_if_network_error
     def get_sheet_names_from_sheet(self, spreadsheet_id: str) -> list[str]:
-        """Return all worksheet names in a spreadsheet."""
+        """Return all worksheet names in a spreadsheet.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+
+        Returns:
+            List containing each worksheet title.
+        """
 
         logger.warning(f"Method '{self.get_sheet_names_from_sheet.__name__}' will be depreciated in a future version.")
 
@@ -312,7 +382,14 @@ class GoogleServices:
 
     @retry_if_network_error
     def get_sheets_medatada_from_sheet(self, spreadsheet_id: str) -> list[dict[str, Any]]:
-        """Return raw metadata entries for all sheets in a spreadsheet."""
+        """Return raw metadata entries for all sheets in a spreadsheet.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+
+        Returns:
+            Raw sheet metadata objects returned by Google Sheets.
+        """
 
         if self._sheet_service is None:
             raise Exception("Spreadsheet service is not initialized. Please run the 'open' function.")
@@ -328,7 +405,14 @@ class GoogleServices:
             raise HttpError(resp=error.resp, content=error_content) from error
 
     def get_subfolders_in_folder(self, folder_id: str) -> list[dict[str, Any]]:
-        """List subfolders inside a Drive folder."""
+        """List subfolders inside a Drive folder.
+
+        Args:
+            folder_id: Parent Drive folder id.
+
+        Returns:
+            List of folder metadata dictionaries.
+        """
 
         if self._drive_service is None:
             raise Exception("Drive service is not initialized. Please run the 'open' function.")
@@ -348,7 +432,14 @@ class GoogleServices:
             raise Exception(f"Error getting subfolders: {error}")
 
     def get_all_files_in_folder(self, folder_id: str) -> list[dict[str, Any]]:
-        """List all files inside a Drive folder."""
+        """List all files inside a Drive folder.
+
+        Args:
+            folder_id: Parent Drive folder id.
+
+        Returns:
+            List of file metadata dictionaries.
+        """
 
         if self._drive_service is None:
             raise Exception("Drive service is not initialized. Please run the 'open' function.")
@@ -368,7 +459,15 @@ class GoogleServices:
             raise Exception(f"Error getting files in folder: {error}")
 
     def create_folder(self, new_folder_name: str, parent_folder_id: str) -> str:
-        """Create a folder in Drive and return its new folder id."""
+        """Create a folder in Drive and return its new folder id.
+
+        Args:
+            new_folder_name: Name to assign to the new folder.
+            parent_folder_id: Drive folder id where the new folder is created.
+
+        Returns:
+            The id of the newly created folder.
+        """
 
         if self._drive_service is None:
             raise Exception("Drive service is not initialized. Please run the 'open' function.")
@@ -387,7 +486,15 @@ class GoogleServices:
             raise Exception(f"Error creating folder: {error}")
 
     def check_if_subfolder_exists_in_folder(self, folder_id: str, subfolder_name: str) -> tuple[bool, str | None]:
-        """Check if a named subfolder exists and return status plus id."""
+        """Check if a named subfolder exists and return status plus id.
+
+        Args:
+            folder_id: Parent Drive folder id.
+            subfolder_name: Subfolder name to look up.
+
+        Returns:
+            Tuple of ``(exists, subfolder_id)`` where ``subfolder_id`` is ``None`` when absent.
+        """
 
         if self._drive_service is None:
             raise Exception("Drive service is not initialized. Please run the 'open' function.")
@@ -410,7 +517,14 @@ class GoogleServices:
             raise Exception(f"Error checking if subfolder exists: {error}")
 
     def check_if_folder_exists(self, folder_id: str) -> bool:
-        """Return True when Drive folder exists and is not trashed."""
+        """Return ``True`` when Drive folder exists and is not trashed.
+
+        Args:
+            folder_id: Drive folder id to validate.
+
+        Returns:
+            ``True`` when the folder exists and is active, otherwise ``False``.
+        """
 
         if self._drive_service is None:
             raise Exception("Drive service is not initialized. Please run the 'open' function.")
@@ -430,7 +544,13 @@ class GoogleServices:
                 raise Exception(f"Error checking if folder exists: {error}")
 
     def upload_file_to_folder(self, file_path: str, folder_id: str, mime_type: str | None = None) -> None:
-        """Upload one local file to a Drive folder."""
+        """Upload one local file to a Drive folder.
+
+        Args:
+            file_path: Local path of the file to upload.
+            folder_id: Destination Drive folder id.
+            mime_type: MIME type for the uploaded file.
+        """
 
         # Mime type for PNG image = 'image/png'
         if mime_type is None:
@@ -460,7 +580,17 @@ class GoogleServices:
         insert_index: int,
         new_sheet_name: str,
     ) -> dict[str, Any]:
-        """Duplicate a sheet and insert it at the provided index."""
+        """Duplicate a sheet and insert it at the provided index.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            source_sheet_id: Sheet id to duplicate.
+            insert_index: Target index for the duplicated sheet.
+            new_sheet_name: New title for the duplicated sheet.
+
+        Returns:
+            API response payload returned by Google Sheets.
+        """
 
         if not isinstance(insert_index, int):
             raise Exception(f"Insert index '{insert_index}' is not an integer.")
@@ -489,7 +619,15 @@ class GoogleServices:
         return self.batch_update_spreadsheet(spreadsheet_id, request_body)
 
     def delete_sheets_from_spreadsheet(self, spreadsheet_id: str, ids_of_sheets_to_delete: list[int]) -> dict[str, Any]:
-        """Delete one or many sheets from a spreadsheet by id."""
+        """Delete one or many sheets from a spreadsheet by id.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            ids_of_sheets_to_delete: Sheet ids that should be removed.
+
+        Returns:
+            API response payload returned by Google Sheets.
+        """
 
         if not isinstance(ids_of_sheets_to_delete, list):
             raise Exception(f"Sheet ids '{ids_of_sheets_to_delete}' is not a list.")
@@ -506,7 +644,15 @@ class GoogleServices:
         return self.batch_update_spreadsheet(spreadsheet_id, request_body)
 
     def reorder_all_sheets_in_spreadsheet(self, spreadsheet_id: str, sheet_ids_in_new_order: list[int]) -> dict[str, Any]:
-        """Reorder all sheets using a full list of sheet ids in new order."""
+        """Reorder all sheets using a full list of sheet ids in new order.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_ids_in_new_order: Complete sheet id order to apply.
+
+        Returns:
+            API response payload returned by Google Sheets.
+        """
 
         # Step 0: Initial checks.
         if not isinstance(sheet_ids_in_new_order, list):

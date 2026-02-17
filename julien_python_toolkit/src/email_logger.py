@@ -11,7 +11,12 @@ from typing import Protocol
 
 class _SupportsEmailSend(Protocol):
     def send_emails(self, subject: str, body: str) -> None:
-        """Send an email payload to one or many recipients."""
+        """Send an email payload to one or many recipients.
+
+        Args:
+            subject: Subject line used for the outgoing email.
+            body: Message body that should be sent.
+        """
 
 
 class EmailLogger:
@@ -24,7 +29,14 @@ class EmailLogger:
         subject: str,
         timestamp: bool = True,
     ) -> None:
-        """Create a logger that stores messages until `send` is called."""
+        """Create a logger that stores messages until ``send`` is called.
+
+        Args:
+            email_sender: Object that can send emails.
+            logger_name: Name to show inside each formatted log line.
+            subject: Subject line to use when sending buffered logs.
+            timestamp: If ``True``, prepend timestamps to buffered log lines.
+        """
 
         self.email_sender = email_sender
         self.logger_name = logger_name
@@ -33,27 +45,47 @@ class EmailLogger:
         self.buffer: list[str] = []
 
     def critical(self, message: str) -> None:
-        """Add a CRITICAL log message to the email buffer."""
+        """Add a CRITICAL log message to the email buffer.
+
+        Args:
+            message: Log message text to store.
+        """
 
         self._log_message(message, "CRITICAL")
 
     def error(self, message: str) -> None:
-        """Add an ERROR log message to the email buffer."""
+        """Add an ERROR log message to the email buffer.
+
+        Args:
+            message: Log message text to store.
+        """
 
         self._log_message(message, "ERROR")
 
     def warning(self, message: str) -> None:
-        """Add a WARNING log message to the email buffer."""
+        """Add a WARNING log message to the email buffer.
+
+        Args:
+            message: Log message text to store.
+        """
 
         self._log_message(message, "WARNING")
 
     def info(self, message: str) -> None:
-        """Add an INFO log message to the email buffer."""
+        """Add an INFO log message to the email buffer.
+
+        Args:
+            message: Log message text to store.
+        """
 
         self._log_message(message, "INFO")
 
     def debug(self, message: str) -> None:
-        """Add a DEBUG log message to the email buffer."""
+        """Add a DEBUG log message to the email buffer.
+
+        Args:
+            message: Log message text to store.
+        """
 
         self._log_message(message, "DEBUG")
 
@@ -70,7 +102,10 @@ class EmailLogger:
         self.buffer.append(formatted_message)
 
     def send(self) -> None:
-        """Send all buffered log lines as one email and clear the buffer."""
+        """Send all buffered log lines as one email and clear the buffer.
+
+        This method does nothing when the buffer is empty.
+        """
 
         if self.buffer:
             log_message = "\n".join(self.buffer)
@@ -89,7 +124,15 @@ class TimedEmailLogger(EmailLogger):
         timestamp: bool = True,
         interval: int = 60,
     ) -> None:
-        """Create a timed logger with an interval in seconds."""
+        """Create a timed logger with an interval in seconds.
+
+        Args:
+            email_sender: Object that can send emails.
+            logger_name: Name to show inside each formatted log line.
+            subject: Subject line to use when sending buffered logs.
+            timestamp: If ``True``, prepend timestamps to buffered log lines.
+            interval: Number of seconds to wait between automatic sends.
+        """
 
         super().__init__(email_sender, logger_name, subject, timestamp=timestamp)
         self.interval = interval

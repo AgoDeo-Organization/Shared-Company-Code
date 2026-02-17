@@ -34,7 +34,14 @@ class Logger:
         stream_log_level: int = WARNING,
         file_log_level: int = INFO,
     ) -> None:
-        """Create logger with separate stream and file log levels."""
+        """Create logger with separate stream and file log levels.
+
+        Args:
+            name: Logger name used by Python's logging module.
+            file_name: Log file name written inside the local ``logs`` folder.
+            stream_log_level: Minimum level for console output.
+            file_log_level: Minimum level for rotating-file output.
+        """
 
         self._logger = self._set_logger(name, file_name, stream_log_level, file_log_level)
 
@@ -75,39 +82,67 @@ class Logger:
         return logger
 
     def debug(self, message: str) -> None:
-        """Log a DEBUG message."""
+        """Log a DEBUG message.
+
+        Args:
+            message: Message to write to the logger.
+        """
 
         self._logger.debug(message)
 
     def info(self, message: str) -> None:
-        """Log an INFO message."""
+        """Log an INFO message.
+
+        Args:
+            message: Message to write to the logger.
+        """
 
         self._logger.info(message)
 
     def warn(self, message: str) -> None:
-        """Log a WARN message."""
+        """Log a WARN message.
+
+        Args:
+            message: Message to write to the logger.
+        """
 
         self._logger.warning(message)
 
     def warning(self, message: str) -> None:
-        """Log a WARNING message."""
+        """Log a WARNING message.
+
+        Args:
+            message: Message to write to the logger.
+        """
 
         self._logger.warning(message)
 
     def error(self, message: str) -> None:
-        """Log an ERROR message."""
+        """Log an ERROR message.
+
+        Args:
+            message: Message to write to the logger.
+        """
 
         self._logger.error(message)
 
     def set_stream_log_level(self, log_level: int | None) -> None:
-        """Update log level for the stream handler."""
+        """Update log level for the stream handler.
+
+        Args:
+            log_level: New minimum logging level for stream handlers.
+        """
 
         for handler in self._logger.handlers:
             if isinstance(handler, logging.StreamHandler) and log_level is not None:
                 handler.setLevel(log_level)
 
     def set_file_log_level(self, log_level: int | None) -> None:
-        """Update log level for the rotating file handler."""
+        """Update log level for the rotating file handler.
+
+        Args:
+            log_level: New minimum logging level for rotating-file handlers.
+        """
 
         for handler in self._logger.handlers:
             if isinstance(handler, logging.handlers.RotatingFileHandler) and log_level is not None:
