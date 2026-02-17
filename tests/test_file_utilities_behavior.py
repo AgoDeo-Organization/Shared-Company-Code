@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from julien_python_toolkit.src import file_utilities
+from julien_python_toolkit import file_utilities
 
 
 
