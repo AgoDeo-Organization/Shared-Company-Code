@@ -1,0 +1,154 @@
+import os
+import json
+import requests
+import datetime
+
+from julien_python_toolkit import file_utilities, log_utilities
+
+
+PATH_TO_API_KEY = file_utilities.join(file_utilities.path_to_this_file(__file__), 'credentials.txt')
+PATH_TO_CACHE = file_utilities.join(file_utilities.path_to_this_file(__file__), 'exchange_rate_cache.json')
+
+
+class ExchangeRateGetter:
+
+    def get_exchange_rate(self, date, base_currency, target_currency):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+# ------------------------------------------------------------------ #
+# Simple Exchange Rate Getter (for testing)
+# ------------------------------------------------------------------ #
+class SimpleExchangeRateGetter(ExchangeRateGetter):
+     
+    def get_exchange_rate(self, date, base_currency, target_currency):
+        return 1.0
+
+
+# ------------------------------------------------------------------ #
+# Open Exchange Rate Getter with Caching
+# ------------------------------------------------------------------ #
+
+logger = log_utilities.Logger("OpenExchangeRateGetterWithCache", "open_exchange_rate_getter.log", stream_log_level = log_utilities.INFO, file_log_level = log_utilities.DEBUG)
+
+class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
+
+    # NOTE: Uses the ExchangeRateAPI website. Requires an API key.
+
+    def __init__(self, path_to_api_key = PATH_TO_API_KEY, path_to_cache = PATH_TO_CACHE):
+
+        self.api_key = self._read_api_key(path_to_api_key)
+
+        self.path_to_cache = path_to_cache
+        self.cache = self._load_cache()
+
+    def _read_api_key(self, api_key_path):
+
+        if not os.path.exists(api_key_path):
+            raise Exception(f"API key file not found at {api_key_path}.")
+
+        with open(api_key_path, 'r') as file:
+            return file.read().strip()
+
+    def _load_cache(self):
+
+        if os.path.exists(self.path_to_cache):
+
+            with open(self.path_to_cache, 'r') as file:
+                return json.load(file)
+        
+        return {}
+
+    def _save_cache(self):
+
+        with open(self.path_to_cache, 'w') as file:
+            json.dump(self.cache, file, indent = 4)
+
+    def _fetch_from_api_with_base_currency_and_not_unity(self, date_str, target_currency):
+
+        try:
+
+            url = f"https://openexchangerates.org/api/historical/{date_str}.json?app_id={self.api_key}&base=USD&symbols={target_currency}"
+
+            logger.debug(f"Fetching exchange rate from API: {url}")
+
+            response = requests.get(url)
+
+            if response.status_code != 200:
+                raise Exception(f"Error fetching exchange rate: {response.status_code} ({response.text})")
+            
+            try:
+                data = response.json()
+            except json.JSONDecodeError as e:
+                raise Exception(f"Error decoding JSON response: {e}")
+            
+            try:
+                return data['rates'][target_currency]
+            except KeyError:
+                raise Exception(f"Exchange rate data not available for {target_currency} on {date_str}")
+        
+        except Exception as e:
+            raise Exception(f"Error fetching exchange rate 'USD -> {target_currency}' on {date_str}: {e}")
+
+    def _fetch_from_api_with_base_currency(self, date_str, target_currency):
+
+        if target_currency == "USD":
+            logger.debug(f"Target currency is 'USD' so rate is 1.0, no need to fetch from API.")
+            return 1.0
+        else:
+            return self._fetch_from_api_with_base_currency_and_not_unity(date_str, target_currency)
+
+    def _fetch_from_api(self, date_str, base_currency, target_currency):
+
+        # NOTE: We need to use this formula because the API does not allow for base currencies other than USD
+
+        logger.debug(f"To create rate '{base_currency} -> {target_currency}', we need 'USD -> {target_currency}' / 'USD -> {base_currency}'.")
+
+        # Fetching numerator
+
+        numerator_rate = self._fetch_from_api_with_base_currency(date_str, target_currency)
+
+        logger.debug(f"Rate fetched for 'USD -> {target_currency}' is '{numerator_rate}'")
+
+        # Fetching denominator
+
+        denominator_rate = self._fetch_from_api_with_base_currency(date_str, base_currency)
+
+        logger.debug(f"Rate fetched for 'USD -> {base_currency}' is '{denominator_rate}'")
+
+        # Calculating final rate
+
+        final_rate = numerator_rate / denominator_rate
+
+        logger.debug(f"Final rate is '{final_rate}'")
+
+        return final_rate
+
+    def get_exchange_rate(self, date, base_currency, target_currency):
+
+        if not isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+            raise ValueError (f"The 'date' {date} must be a datetime.date or datetime.datetime object, but got '{type(date)}' instead.")
+
+        logger.debug(f"Getting exchange rate for {date}, {base_currency} -> {target_currency}")
+
+        date_str = date.strftime('%Y-%m-%d')
+        cache_key = f"{date_str}_{base_currency}_{target_currency}"
+        
+        if cache_key in self.cache:
+            logger.debug(f"Found exchange rate in cache: {self.cache[cache_key]}")
+            return self.cache[cache_key]
+        
+        logger.debug("Exchange rate not found in cache. Fetching from API.")
+
+        exchange_rate = self._fetch_from_api(date_str, base_currency, target_currency)
+
+        logger.debug(f"Exchange rate fetched: {exchange_rate}")
+
+        if exchange_rate is not None:
+
+            self.cache[cache_key] = exchange_rate
+            self._save_cache()
+
+            logger.debug("Cache saved.")
+        
+        return exchange_rate
