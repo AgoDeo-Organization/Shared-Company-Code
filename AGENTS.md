@@ -8,14 +8,31 @@ are allowed to interact with this repository.
 
 Agents must follow these rules strictly.
 
-The goals:
-- Preserve architectural integrity
-- Avoid silent regressions
-- Maintain readability and test coverage
-- Prevent unsafe changes
-- Enable scalable AI-assisted development
+## 2. General Project Structure
 
----
+Use this simple template project structure:
+
+```
+repo/
+├── pyproject.toml
+├── README.md
+├── LICENSE.txt
+├── AGENTS.md
+├── src/
+│   └── myproject/
+│       ├── __init__.py
+│       ├── ...
+├── tests/
+│   └── ...
+├── docs/
+│   └── ...
+├── scripts/
+│   └── ...
+```
+
+## Coding standards
+- Always import modules using this format: `from myproj.core import run`
+
 
 ## 2. Repository Overview
 
@@ -26,83 +43,7 @@ The goals:
 - Linting: ruff
 - Dependency management: poetry (or specify pip/requirements.txt)
 
-Project structure:
-```
-/src
-/core
-/services
-/integrations
-/utils
-/domain
-/tests
-/scripts
-/docs
-```
 
-Agents must respect module boundaries.
-
----
-
-## 3. Agent Allowed Actions
-
-Agents MAY:
-
-- Refactor existing code (without changing behavior)
-- Add new functions inside existing modules
-- Add new modules inside approved folders
-- Improve type hints
-- Improve docstrings
-- Add tests
-- Improve performance (without changing outputs)
-- Add logging (non-sensitive only)
-
-Agents MUST NOT:
-
-- Delete modules unless explicitly instructed
-- Modify security-critical code without explicit request
-- Change database schemas without migration file
-- Modify environment variable names
-- Add new third-party dependencies without justification
-- Remove tests
-- Silence failing tests without fixing root cause
-
----
-
-## 4. Architectural Rules
-
-### 4.1 Domain Isolation
-
-Business logic must live in:
-```
-/src/domain
-```
-
-No external API calls in domain layer.
-
----
-
-### 4.2 Service Layer
-
-External calls (APIs, DB, filesystem) must live in:
-```
-/src/services
-/src/integrations
-```
-
-Services must not contain business logic.
-
----
-
-### 4.3 Utilities
-
-Reusable stateless helpers:
-```
-/src/utils
-```
-
-No side effects unless clearly documented.
-
----
 
 ## 5. Code Style Requirements
 
