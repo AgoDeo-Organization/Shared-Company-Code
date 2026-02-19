@@ -11,8 +11,22 @@ PATH_TO_CACHE = file_utilities.join(file_utilities.path_to_this_file(__file__), 
 
 
 class ExchangeRateGetter:
+    """Base interface for all exchange rate providers."""
 
     def get_exchange_rate(self, date, base_currency, target_currency):
+        """Get the exchange rate from a base currency to a target currency.
+
+        Args:
+            date: The date to fetch the exchange rate for.
+            base_currency: The source currency code.
+            target_currency: The destination currency code.
+
+        Returns:
+            The exchange rate as a float.
+
+        Raises:
+            NotImplementedError: Always raised by the base class.
+        """
         raise NotImplementedError("Subclasses must implement this method.")
 
 
@@ -20,8 +34,19 @@ class ExchangeRateGetter:
 # Simple Exchange Rate Getter (for testing)
 # ------------------------------------------------------------------ #
 class SimpleExchangeRateGetter(ExchangeRateGetter):
+    """Simple exchange rate provider that always returns a fixed value."""
      
     def get_exchange_rate(self, date, base_currency, target_currency):
+        """Return a constant exchange rate for testing.
+
+        Args:
+            date: The date to fetch the exchange rate for.
+            base_currency: The source currency code.
+            target_currency: The destination currency code.
+
+        Returns:
+            Always returns 1.0.
+        """
         return 1.0
 
 
@@ -32,10 +57,17 @@ class SimpleExchangeRateGetter(ExchangeRateGetter):
 logger = log_utilities.Logger("OpenExchangeRateGetterWithCache", "open_exchange_rate_getter.log", stream_log_level = log_utilities.INFO, file_log_level = log_utilities.DEBUG)
 
 class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
+    """Exchange rate provider that uses Open Exchange Rates with local caching."""
 
     # NOTE: Uses the ExchangeRateAPI website. Requires an API key.
 
     def __init__(self, path_to_api_key = PATH_TO_API_KEY, path_to_cache = PATH_TO_CACHE):
+        """Initialize the exchange rate getter and load cache data.
+
+        Args:
+            path_to_api_key: Path to the file containing the API key.
+            path_to_cache: Path to the JSON cache file.
+        """
 
         self.api_key = self._read_api_key(path_to_api_key)
 
@@ -43,6 +75,17 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
         self.cache = self._load_cache()
 
     def _read_api_key(self, api_key_path):
+        """Read and return the API key from a file.
+
+        Args:
+            api_key_path: Path to the API key file.
+
+        Returns:
+            The API key string.
+
+        Raises:
+            Exception: If the API key file does not exist.
+        """
 
         if not os.path.exists(api_key_path):
             raise Exception(f"API key file not found at {api_key_path}.")
@@ -51,6 +94,11 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
             return file.read().strip()
 
     def _load_cache(self):
+        """Load cached exchange rates from disk.
+
+        Returns:
+            A dictionary of cached exchange rates.
+        """
 
         if os.path.exists(self.path_to_cache):
 
@@ -60,11 +108,24 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
         return {}
 
     def _save_cache(self):
+        """Persist the current exchange rate cache to disk."""
 
         with open(self.path_to_cache, 'w') as file:
             json.dump(self.cache, file, indent = 4)
 
     def _fetch_from_api_with_base_currency_and_not_unity(self, date_str, target_currency):
+        """Fetch an exchange rate from USD to a non-USD target currency.
+
+        Args:
+            date_str: Date string in YYYY-MM-DD format.
+            target_currency: Currency code to convert USD into.
+
+        Returns:
+            The exchange rate from USD to the target currency.
+
+        Raises:
+            Exception: If the API request or response processing fails.
+        """
 
         try:
 
@@ -91,6 +152,15 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
             raise Exception(f"Error fetching exchange rate 'USD -> {target_currency}' on {date_str}: {e}")
 
     def _fetch_from_api_with_base_currency(self, date_str, target_currency):
+        """Fetch an exchange rate from USD to a target currency.
+
+        Args:
+            date_str: Date string in YYYY-MM-DD format.
+            target_currency: Currency code to convert USD into.
+
+        Returns:
+            The exchange rate from USD to the target currency.
+        """
 
         if target_currency == "USD":
             logger.debug(f"Target currency is 'USD' so rate is 1.0, no need to fetch from API.")
@@ -99,6 +169,16 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
             return self._fetch_from_api_with_base_currency_and_not_unity(date_str, target_currency)
 
     def _fetch_from_api(self, date_str, base_currency, target_currency):
+        """Fetch an exchange rate for any currency pair using USD as the bridge.
+
+        Args:
+            date_str: Date string in YYYY-MM-DD format.
+            base_currency: Source currency code.
+            target_currency: Destination currency code.
+
+        Returns:
+            The exchange rate from base currency to target currency.
+        """
 
         # NOTE: We need to use this formula because the API does not allow for base currencies other than USD
 
@@ -125,6 +205,19 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
         return final_rate
 
     def get_exchange_rate(self, date, base_currency, target_currency):
+        """Get an exchange rate for a date and currency pair.
+
+        Args:
+            date: A datetime.date or datetime.datetime instance.
+            base_currency: Source currency code.
+            target_currency: Destination currency code.
+
+        Returns:
+            The exchange rate as a float.
+
+        Raises:
+            ValueError: If date is not a date or datetime object.
+        """
 
         if not isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
             raise ValueError (f"The 'date' {date} must be a datetime.date or datetime.datetime object, but got '{type(date)}' instead.")
