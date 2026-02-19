@@ -7,8 +7,9 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='julien-python-toolkit',
-    version='0.2.4',
-    packages=find_packages(),
+    version='0.2.5',
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     license='Custom Non-Commercial License',  # Reference your custom license
     install_requires=[
         "certifi==2024.8.30",
