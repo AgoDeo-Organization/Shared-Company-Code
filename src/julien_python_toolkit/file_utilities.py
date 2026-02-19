@@ -17,7 +17,9 @@ def path_to_this_file(file: str) -> str:
         The absolute directory path that contains ``file``.
     """
 
-    return os.path.dirname(os.path.realpath(file))
+    absolute_file_path = os.path.abspath(file)
+
+    return os.path.dirname(absolute_file_path)
 
 
 def join(*args: str) -> str:
