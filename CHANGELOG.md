@@ -2,13 +2,15 @@
 
 All notable changes to this project are documented here.
 
-## [0.2.5] - 2026-02-19
+## [0.2.6] - 2026-02-20
 
 ### Added
-- New Google Sheets helper functions
+- `ExchangeRateGetter` and other API to fetch exchange rates
+- `CHANGELOG.md`
 
 ### Fixed
-- Fixed credential loading bug
+- None
 
 ### Changed
-- Improved error handling
+- `GoogleServices` now accepts credentials as variabls, not just files
+    - Passing file names for credentials will be depreciated and raises a warning
