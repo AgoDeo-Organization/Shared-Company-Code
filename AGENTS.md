@@ -1,5 +1,6 @@
-# AGENTS.md
 # AI Agent Operating Rules for This Repository
+
+*Version 0.1.0*
 
 ## 1. Purpose
 
@@ -7,6 +8,13 @@ This document defines how AI agents (e.g. Codex, Claude Code, internal automatio
 are allowed to interact with this repository.
 
 Agents must follow these rules strictly.
+
+## 2. Important Rules
+
+- Keep the code **simple**. The people interacting with this repository are not necessairly advanced programmers
+- Make the code human readable (e.g. use `orders_last_day` instead of `o`)
+- Use comments frequently, especially for higher level logic.
+- Any text (docs, docstrings, comments) must be explained in simple language, assuming reader is **12 years old**. Only keep technical terms (e.g. API, method, ...)
 
 ## 2. General Project Structure
 
@@ -30,105 +38,60 @@ repo/
 │   └── ...
 ```
 
-## Coding standards
+## 3. Coding standards
 - Always import modules using this format: `from myproj.core import run`
+- Use PEP8 + Black formatting
+- Use clear and explicit exceptions.
 
+## 4. Testing Rules
 
-## 2. Repository Overview
+Imporant testing rules:
+- All tests are with `pytest`
+- Agents must **always** run **all** tests after making modifications
+- Tests should be fast, independed and repeatable
+- Do NOT call real APIs, use real databases, depend on the internet
+- Always run test before merging. If tests fail, merging fails
+- Every new behaviour requires a new test
 
-- Language: Python 3.11+
-- Style: PEP8 + Black formatting
-- Testing: pytest
-- Type checking: mypy (strict mode)
-- Linting: ruff
-- Dependency management: poetry (or specify pip/requirements.txt)
+Use this folder structure:
 
-
-
-## 5. Code Style Requirements
-
-- Code must be **simple** and **human readable**
-- Code must also be **sparse** and **spaced out**
-- Make **frequent use of comments** to explain your logic
-- Code should be object oriented
-- Classes should have a unique purpose/goal
-- Use dependency injection
-- All functions must have type hints.
-- All public functions must have Google-style docstrings (with args, returns, raises, ...).
-- No function longer than 80 lines.
-- No file longer than 1000 lines.
-- No nested logic deeper than 3 levels.
-- No wildcard imports.
-- Use explicit exceptions.
-- Avoid global state, except for logging
-
----
-
-## 6. Testing Rules
-
-Every new behavior requires:
-
-- Unit tests in `/tests`
-- At least one edge case
-- At least one failure case
-
-Agents must:
-
-- Never reduce coverage
-- Never delete tests unless replacing with stronger tests
-- Run tests before finalizing changes
-
-Test naming format:
 ```
-test_<module>_<behavior>.py
+project/
+│
+├── src/
+│   └── your_code.py
+│
+└── tests/
+    └── test_your_code.py
 ```
 
----
+Structure rules:
+- Test files must start with: test_
+- Test functions must start with: test_
+- Keep tests inside a folder called tests
 
-## 7. Safe Refactoring Protocol
+Other testing rules:
+- Test at least one edge case
+- Always test error behavior, not just happy paths.
+- Write clear names for tests. The name should explain what is being tested.
+- Each test should check one behavior only. Do not put many unrelated checks in one test.
+- Never reduce coverage, and never delete tests unless replacing with stronger tests
 
-When refactoring:
+## 5. Security Rules
 
-1. Preserve public API
-2. Do not change function signatures unless instructed
-3. Add tests before modifying behavior
-4. Keep commits small and atomic
+How to manage credentials:
+- Locally: save in `.env` file in project root
+- AWS Lambda: configuration → environment variables
+- Create file `src/config.py` and load secrets with `load_dotenv()` and `API_KEY = os.environ['API_KEY']`
+- Use `from src.config import API_KEY` to use secrets through project
 
----
-
-## 8. Dependency Policy
-
-Before adding dependency:
-
-- Justify why stdlib is insufficient
-- Confirm license compatibility
-- Confirm long-term maintenance
-- Keep dependency count minimal
-
----
-
-## 9. Security Rules
-
-Agents must:
-
-- Never hardcode secrets
-- Never log credentials
-- Never expose API keys
-- Use environment variables
+Important rules:
+- **NEVER** commit credentials or `.env` files to git. Always gitignore!
+- **NEVER** hardcode credentials in code
 - Validate all external inputs
 - Sanitize file paths
 
-Sensitive areas (extra caution required):
-
-- Authentication
-- Payments
-- Data exports
-- File uploads
-- Webhooks
-
----
-
-## 10. Documentation Rules
+## 6. Documentation Rules
 
 For new modules:
 
@@ -140,17 +103,18 @@ If behavior changes:
 - Update README
 - Update docstrings
 
+Docstings & type hint rules:
+- All functions must have type hints.
+- All functions (public and private) must have Google-style docstrings (with args, returns, raises, ...).
+
 Writing style:
 - Must be written for a **12 year old** to understand.
 - Exception: when technical terms are used (e.g. API, method, function, ...)
-- Valid for Google-style docstrings and comments aswell
 
----
-
-## 11. Commit Message Format
+## 7. Commit Message Format
 
 ```
-<type>: <short description>
+[agent] <type>: <short description>
 <why this change was made> <risk assessment> <testing performed>
 ```
 
@@ -164,9 +128,7 @@ Types:
 - perf
 - chore
 
----
-
-## 12. Large Change Policy
+## 8. Large Change Policy
 
 If change affects more than 5 files:
 
@@ -177,95 +139,20 @@ Agent must:
 3. Describe risks
 4. Wait for approval
 
----
+## 9. AI Agent Self-Check Before Finalizing
 
-## 13. AI Agent Self-Check Before Finalizing
+Before finalizing any change, agents **MUST**:
+- Verify code runs
+- Run all tests using `pytest`
+- No linter errors using `ruff check .`
+- No type errors using `mypy src`
 
-Agent must verify:
+## 10. Final Principle
 
-- [ ] Code runs
-- [ ] Tests pass
-- [ ] No linter errors
-- [ ] No type errors
-- [ ] No architectural violations
-- [ ] No duplicated logic introduced
-- [ ] No circular imports
-- [ ] No hidden breaking changes
-
----
-
-## 14. Prohibited Shortcuts
-
-Agents must NOT:
-
-- Comment out failing code
-- Bypass validation logic
-- Ignore type errors
-- Add `# type: ignore` without justification
-- Catch broad `Exception` silently
-- Remove error handling
-
----
-
-## 15. Performance Constraints
-
-- Avoid O(n²) unless justified
-- Use generators for large data
-- Avoid loading entire files in memory if unnecessary
-- Use caching carefully (must be deterministic)
-
----
-
-## 16. Determinism Requirement
-
-All business logic must be deterministic.
-
-No:
-- Hidden randomness
-- Time-dependent behavior without injection
-- Implicit global state
-
----
-
-## 17. Agent Escalation Rule
-
-If unsure:
-
-- Do not guess
-- Propose alternatives
-- Ask for clarification
-- Provide tradeoffs
-
----
-
-## 18. Versioning Policy
-
-Public APIs must follow semantic versioning:
-
-MAJOR.MINOR.PATCH
-
-Breaking change → MAJOR
-New feature → MINOR
-Fix → PATCH
-
----
-
-## 19. Migration Rule
-
-If modifying data structures:
-
-- Provide migration script
-- Provide rollback instructions
-- Ensure backward compatibility if possible
-
----
-
-## 20. Final Principle
-
-Clarity > Cleverness  
-Explicit > Implicit  
-Simple > Complex  
-Safe > Fast  
+- Clarity > Cleverness
+- Explicit > Implicit
+- Simple > Complex
+- Safe > Fast
 
 Agents are collaborators, not decision-makers.
 Architectural integrity always wins over speed.
