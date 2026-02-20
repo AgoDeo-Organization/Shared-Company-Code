@@ -4,19 +4,21 @@
 # explicit permission from the author.
 
 
+import json
 import os
 import socket
 import ssl
 import time
+import warnings
 from collections.abc import Callable
 from typing import Any
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
+from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore[import-untyped]
+from googleapiclient.discovery import build  # type: ignore[import-untyped]
+from googleapiclient.errors import HttpError  # type: ignore[import-untyped]
+from googleapiclient.http import MediaFileUpload  # type: ignore[import-untyped]
 
 from . import log_utilities
 
@@ -50,6 +52,7 @@ class GoogleServices:
     # and it will generate a new token file specific to that spreadsheet.
     _DEFAULT_PATH_TO_CREDENTIALS_FILE = os.path.join(PATH_TO_THIS_FILE, "credentials.json")
     _DEFAULT_PATH_TO_TOKEN_FILE = os.path.join(PATH_TO_THIS_FILE, "token.json")
+    _LEGACY_FILE_MODE_REMOVAL_DATE = "2026-08-01"
 
     @staticmethod
     def retry_if_network_error(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -111,25 +114,134 @@ class GoogleServices:
 
         return wrapper
 
-    def __init__(self, path_to_credentials_file: str | None = None, path_to_token_file: str | None = None) -> None:
+    def __init__(
+        self,
+        credentials_info: dict[str, Any] | str | None = None,
+        token_info: dict[str, Any] | str | None = None,
+        path_to_credentials_file: str | None = None,
+        path_to_token_file: str | None = None,
+    ) -> None:
         """Create Google service clients and open authenticated sessions.
 
         Args:
+            credentials_info: OAuth client credentials as a dict (or JSON string).
+            token_info: OAuth token values as a dict (or JSON string).
             path_to_credentials_file: Optional path to a Google OAuth credentials file.
             path_to_token_file: Optional path to the cached OAuth token file.
         """
 
-        if path_to_credentials_file is None:
-            path_to_credentials_file = self._DEFAULT_PATH_TO_CREDENTIALS_FILE
+        # Backward compatibility:
+        # if first and second args are path-like strings, treat them as old file paths.
+        if self._looks_like_legacy_path_args(credentials_info, token_info, path_to_credentials_file, path_to_token_file):
+            path_to_credentials_file = str(credentials_info)
+            path_to_token_file = str(token_info)
+            credentials_info = None
+            token_info = None
+        elif (
+            isinstance(credentials_info, str)
+            and not self._is_json_object_string(credentials_info)
+            and path_to_credentials_file is None
+        ):
+            # Backward compatibility for old one-arg style:
+            # GoogleServices("credentials.json")
+            path_to_credentials_file = credentials_info
+            credentials_info = None
 
-        if path_to_token_file is None:
-            path_to_token_file = self._DEFAULT_PATH_TO_TOKEN_FILE
+        self._credentials_info = self._normalize_oauth_info(credentials_info, "credentials_info")
+        self._token_info = self._normalize_oauth_info(token_info, "token_info")
+
+        # Prefer new in-memory mode when credentials/token info is provided.
+        self._use_legacy_file_auth = self._credentials_info is None and self._token_info is None
+
+        if self._use_legacy_file_auth:
+            if path_to_credentials_file is None:
+                path_to_credentials_file = self._DEFAULT_PATH_TO_CREDENTIALS_FILE
+
+            if path_to_token_file is None:
+                path_to_token_file = self._DEFAULT_PATH_TO_TOKEN_FILE
+
+            self._warn_legacy_file_mode()
+        elif path_to_credentials_file is not None or path_to_token_file is not None:
+            warnings.warn(
+                "You passed both in-memory auth info and file paths. "
+                "File paths are ignored because in-memory auth is used.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         self._path_to_credentials_file = path_to_credentials_file
         self._path_to_token_file = path_to_token_file
         self._sheet_service = None
+        self._drive_service = None
 
         self.open()
+
+    @staticmethod
+    def _is_json_object_string(value: str) -> bool:
+        """Return True when a string looks like a JSON object."""
+
+        try:
+            parsed_value = json.loads(value)
+        except json.JSONDecodeError:
+            return False
+
+        return isinstance(parsed_value, dict)
+
+    @classmethod
+    def _looks_like_legacy_path_args(
+        cls,
+        credentials_info: dict[str, Any] | str | None,
+        token_info: dict[str, Any] | str | None,
+        path_to_credentials_file: str | None,
+        path_to_token_file: str | None,
+    ) -> bool:
+        """Detect old positional style: GoogleServices('credentials.json', 'token.json')."""
+
+        return (
+            isinstance(credentials_info, str)
+            and isinstance(token_info, str)
+            and not cls._is_json_object_string(credentials_info)
+            and not cls._is_json_object_string(token_info)
+            and path_to_credentials_file is None
+            and path_to_token_file is None
+        )
+
+    @staticmethod
+    def _normalize_oauth_info(
+        oauth_info: dict[str, Any] | str | None,
+        variable_name: str,
+    ) -> dict[str, Any] | None:
+        """Accept dict or JSON string for OAuth info and return a dict."""
+
+        if oauth_info is None:
+            return None
+
+        if isinstance(oauth_info, dict):
+            return oauth_info
+
+        if isinstance(oauth_info, str):
+            try:
+                parsed_oauth_info = json.loads(oauth_info)
+            except json.JSONDecodeError as error:
+                raise ValueError(
+                    f"{variable_name} must be a dict or valid JSON string."
+                ) from error
+
+            if isinstance(parsed_oauth_info, dict):
+                return parsed_oauth_info
+
+        raise ValueError(f"{variable_name} must be a dict or valid JSON string.")
+
+    def _warn_legacy_file_mode(self) -> None:
+        """Warn users that file path auth mode is scheduled for removal."""
+
+        deprecation_message = (
+            "GoogleServices file-path auth mode is deprecated and will be removed after "
+            f"{self._LEGACY_FILE_MODE_REMOVAL_DATE}. "
+            "Please pass credentials_info and token_info to the constructor."
+        )
+        warnings.warn(deprecation_message, FutureWarning, stacklevel=3)
+        logger.warn(deprecation_message)
 
     def open(self) -> None:
         """Authenticate and initialize Google Sheets and Drive clients.
@@ -141,9 +253,16 @@ class GoogleServices:
         try:
             credentials = None
 
-            # A. If there is a token file, get credentials from token file.
-            if os.path.exists(self._path_to_token_file):
-                credentials = Credentials.from_authorized_user_file(self._path_to_token_file, self._SCOPES)
+            if self._use_legacy_file_auth:
+                # TODO(deprecation): Remove file-based auth loading after 2026-08-01.
+                # A. If there is a token file, get credentials from token file.
+                if self._path_to_token_file is None:
+                    raise Exception("path_to_token_file is required in legacy auth mode.")
+                if os.path.exists(self._path_to_token_file):
+                    credentials = Credentials.from_authorized_user_file(self._path_to_token_file, self._SCOPES)
+            elif self._token_info is not None:
+                # New mode: read token directly from in-memory data.
+                credentials = Credentials.from_authorized_user_info(self._token_info, self._SCOPES)
 
             # B. If credentials are not valid or do not exist.
             if not credentials or not credentials.valid:
@@ -152,12 +271,30 @@ class GoogleServices:
                     credentials.refresh(Request())
                 # b. Else -> get credentials from server (i.e. login).
                 else:
-                    flow = InstalledAppFlow.from_client_secrets_file(self._path_to_credentials_file, self._SCOPES)
+                    if self._use_legacy_file_auth:
+                        # TODO(deprecation): Remove file-based auth loading after 2026-08-01.
+                        if self._path_to_credentials_file is None:
+                            raise Exception("path_to_credentials_file is required in legacy auth mode.")
+                        flow = InstalledAppFlow.from_client_secrets_file(self._path_to_credentials_file, self._SCOPES)
+                    else:
+                        if self._credentials_info is None:
+                            raise Exception(
+                                "credentials_info is required when token_info is missing or not valid."
+                            )
+                        flow = InstalledAppFlow.from_client_config(self._credentials_info, self._SCOPES)
+
                     credentials = flow.run_local_server(port=0)
 
-                # Update the token file.
-                with open(self._path_to_token_file, "w") as token:
-                    token.write(credentials.to_json())
+                if self._use_legacy_file_auth:
+                    # TODO(deprecation): Remove file-based token write after 2026-08-01.
+                    # Update the token file.
+                    if self._path_to_token_file is None:
+                        raise Exception("path_to_token_file is required in legacy auth mode.")
+                    with open(self._path_to_token_file, "w") as token:
+                        token.write(credentials.to_json())
+                else:
+                    # Keep refreshed token in memory so caller can save it.
+                    self._token_info = json.loads(credentials.to_json())
 
             self._sheet_service = build("sheets", "v4", credentials=credentials)
             self._drive_service = build("drive", "v3", credentials=credentials)
