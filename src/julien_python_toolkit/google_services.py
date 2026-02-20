@@ -231,6 +231,12 @@ class GoogleServices:
                 return parsed_oauth_info
 
         raise ValueError(f"{variable_name} must be a dict or valid JSON string.")
+    
+    @property
+    def token_info(self) -> dict[str, Any] | None:
+        """Return the current token info as a dict, or None if not available."""
+
+        return self._token_info
 
     def _warn_legacy_file_mode(self) -> None:
         """Warn users that file path auth mode is scheduled for removal."""
