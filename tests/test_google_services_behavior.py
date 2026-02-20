@@ -39,6 +39,10 @@ def _install_google_stubs() -> None:
         def from_authorized_user_file(cls, *_args, **_kwargs):
             return cls()
 
+        @classmethod
+        def from_authorized_user_info(cls, *_args, **_kwargs):
+            return cls()
+
         def refresh(self, *_args, **_kwargs):
             return None
 
@@ -48,6 +52,10 @@ def _install_google_stubs() -> None:
     class _Flow:
         @classmethod
         def from_client_secrets_file(cls, *_args, **_kwargs):
+            return cls()
+
+        @classmethod
+        def from_client_config(cls, *_args, **_kwargs):
             return cls()
 
         def run_local_server(self, *_args, **_kwargs):
@@ -86,7 +94,7 @@ def _install_google_stubs() -> None:
 
 _install_google_stubs()
 
-from julien_python_toolkit import google_services
+from julien_python_toolkit import google_services  # noqa: E402
 
 
 
@@ -94,7 +102,56 @@ def _build_service(monkeypatch: pytest.MonkeyPatch) -> google_services.GoogleSer
     """Create a GoogleServices instance without opening remote sessions."""
 
     monkeypatch.setattr(google_services.GoogleServices, "open", lambda self: None)
-    return google_services.GoogleServices()
+    return google_services.GoogleServices(
+        credentials_info={"installed": {"client_id": "test"}},
+        token_info={"token": "test"},
+    )
+
+
+def test_init_accepts_new_in_memory_oauth_info(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Constructor should keep dict-based oauth info in memory mode."""
+
+    monkeypatch.setattr(google_services.GoogleServices, "open", lambda self: None)
+    service = google_services.GoogleServices(
+        credentials_info={"installed": {"client_id": "abc"}},
+        token_info={"token": "xyz"},
+    )
+
+    assert service._use_legacy_file_auth is False
+    assert service._credentials_info == {"installed": {"client_id": "abc"}}
+    assert service._token_info == {"token": "xyz"}
+
+
+def test_init_maps_old_positional_paths_and_warns(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Old positional path style should still work with a deprecation warning."""
+
+    monkeypatch.setattr(google_services.GoogleServices, "open", lambda self: None)
+
+    with pytest.warns(FutureWarning, match="deprecated"):
+        service = google_services.GoogleServices("credentials.json", "token.json")
+
+    assert service._use_legacy_file_auth is True
+    assert service._path_to_credentials_file == "credentials.json"
+    assert service._path_to_token_file == "token.json"
+
+
+def test_open_uses_token_info_when_in_memory_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """open should read token data from token_info in in-memory mode."""
+
+    credential_mock = Mock(valid=True)
+    from_authorized_user_info_mock = Mock(return_value=credential_mock)
+    build_mock = Mock(return_value=Mock())
+
+    monkeypatch.setattr(google_services.Credentials, "from_authorized_user_info", from_authorized_user_info_mock)
+    monkeypatch.setattr(google_services, "build", build_mock)
+
+    google_services.GoogleServices(
+        credentials_info={"installed": {"client_id": "abc"}},
+        token_info={"token": "xyz"},
+    )
+
+    from_authorized_user_info_mock.assert_called_once_with({"token": "xyz"}, google_services.GoogleServices._SCOPES)
+    assert build_mock.call_count == 2
 
 
 
