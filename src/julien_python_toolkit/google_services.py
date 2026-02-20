@@ -735,6 +735,9 @@ class GoogleServices:
             API response payload returned by Google Sheets.
         """
 
+        if not isinstance(source_sheet_id, int):
+            raise Exception(f"Source sheet id '{source_sheet_id}' is not an integer.")
+
         if not isinstance(insert_index, int):
             raise Exception(f"Insert index '{insert_index}' is not an integer.")
 
