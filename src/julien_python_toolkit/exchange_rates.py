@@ -6,7 +6,6 @@ import datetime
 from julien_python_toolkit import file_utilities, log_utilities
 
 
-PATH_TO_API_KEY = file_utilities.join(file_utilities.path_to_this_file(__file__), 'credentials.txt')
 PATH_TO_CACHE = file_utilities.join(file_utilities.path_to_this_file(__file__), 'exchange_rate_cache.json')
 
 
@@ -61,37 +60,25 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
 
     # NOTE: Uses the ExchangeRateAPI website. Requires an API key.
 
-    def __init__(self, path_to_api_key = PATH_TO_API_KEY, path_to_cache = PATH_TO_CACHE):
+    def __init__(self, api_key, path_to_cache = PATH_TO_CACHE):
         """Initialize the exchange rate getter and load cache data.
 
         Args:
-            path_to_api_key: Path to the file containing the API key.
+            api_key: API key string used to call Open Exchange Rates.
             path_to_cache: Path to the JSON cache file.
+
+        Raises:
+            ValueError: If api_key is missing or empty.
         """
 
-        self.api_key = self._read_api_key(path_to_api_key)
+        clean_api_key = str(api_key).strip()
+        if not clean_api_key:
+            raise ValueError("API key is required.")
+
+        self.api_key = clean_api_key
 
         self.path_to_cache = path_to_cache
         self.cache = self._load_cache()
-
-    def _read_api_key(self, api_key_path):
-        """Read and return the API key from a file.
-
-        Args:
-            api_key_path: Path to the API key file.
-
-        Returns:
-            The API key string.
-
-        Raises:
-            Exception: If the API key file does not exist.
-        """
-
-        if not os.path.exists(api_key_path):
-            raise Exception(f"API key file not found at {api_key_path}.")
-
-        with open(api_key_path, 'r') as file:
-            return file.read().strip()
 
     def _load_cache(self):
         """Load cached exchange rates from disk.
@@ -163,7 +150,7 @@ class OpenExchangeRateGetterWithCache(ExchangeRateGetter):
         """
 
         if target_currency == "USD":
-            logger.debug(f"Target currency is 'USD' so rate is 1.0, no need to fetch from API.")
+            logger.debug("Target currency is 'USD' so rate is 1.0, no need to fetch from API.")
             return 1.0
         else:
             return self._fetch_from_api_with_base_currency_and_not_unity(date_str, target_currency)

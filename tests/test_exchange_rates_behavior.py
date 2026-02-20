@@ -32,13 +32,10 @@ class _FakeResponse:
 def _build_getter(tmp_path: Path) -> exchange_rates.OpenExchangeRateGetterWithCache:
     """Create an exchange rate getter wired to temporary files."""
 
-    key_path = tmp_path / "credentials.txt"
     cache_path = tmp_path / "exchange_rate_cache.json"
 
-    key_path.write_text("my-secret-key\n", encoding="utf-8")
-
     return exchange_rates.OpenExchangeRateGetterWithCache(
-        path_to_api_key=str(key_path),
+        api_key="my-secret-key",
         path_to_cache=str(cache_path),
     )
 
@@ -65,32 +62,27 @@ def test_simple_exchange_rate_getter_always_returns_unity() -> None:
 
 
 
-def test_read_api_key_raises_for_missing_file(tmp_path: Path) -> None:
-    """Getter init should fail when the API key file does not exist."""
+def test_init_raises_for_missing_api_key(tmp_path: Path) -> None:
+    """Getter init should fail when API key is missing."""
 
-    missing_key_path = tmp_path / "missing.txt"
-
-    with pytest.raises(Exception, match="API key file not found"):
+    with pytest.raises(ValueError, match="API key is required"):
         exchange_rates.OpenExchangeRateGetterWithCache(
-            path_to_api_key=str(missing_key_path),
+            api_key="",
             path_to_cache=str(tmp_path / "cache.json"),
         )
 
 
 
 def test_init_loads_api_key_and_existing_cache(tmp_path: Path) -> None:
-    """Init should trim API key and load existing JSON cache."""
+    """Init should trim API key input and load existing JSON cache."""
 
-    key_path = tmp_path / "credentials.txt"
     cache_path = tmp_path / "exchange_rate_cache.json"
-
-    key_path.write_text(" my-key-with-spaces \n", encoding="utf-8")
 
     cache_payload = {"2024-01-01_USD_EUR": 0.9}
     cache_path.write_text(json.dumps(cache_payload), encoding="utf-8")
 
     getter = exchange_rates.OpenExchangeRateGetterWithCache(
-        path_to_api_key=str(key_path),
+        api_key=" my-key-with-spaces \n",
         path_to_cache=str(cache_path),
     )
 
