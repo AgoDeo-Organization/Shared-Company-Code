@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.7] - 2026-02-??
+
+### Added
+- None
+
+### Fixed
+- None
+
+### Changed
+- `LICENSE.txt` is now all rights reserved. This software is proprietary and confidential. Unauthorized use, copying, modification, or distribution is strictly prohibited.
+
 ## [0.2.6] - 2026-02-20
 
 ### Added
