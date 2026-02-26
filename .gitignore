@@ -3,3 +3,5 @@
 /myenv
 *.pyc
 *.log
+.env
+/src/julien_python_toolkit.egg-info
