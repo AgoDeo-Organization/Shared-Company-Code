@@ -792,6 +792,32 @@ class GoogleServices:
 
         return self.batch_update_spreadsheet(spreadsheet_id, request_body)
 
+    def delete_sheet(self, spreadsheet_id: str, sheet_name_or_sheet_id: str | int) -> dict[str, Any]:
+        """Delete one sheet using either its name or its id.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name_or_sheet_id: Sheet name (string) or sheet id (integer).
+
+        Returns:
+            API response payload returned by Google Sheets.
+
+        Raises:
+            Exception: If ``sheet_name_or_sheet_id`` is not a string or an integer.
+        """
+
+        # Accept both input styles to make calling code simpler.
+        if isinstance(sheet_name_or_sheet_id, str):
+            sheet_id = self.get_sheet_id_from_sheet_name(spreadsheet_id, sheet_name_or_sheet_id)
+        elif isinstance(sheet_name_or_sheet_id, int):
+            sheet_id = sheet_name_or_sheet_id
+        else:
+            raise Exception(
+                f"Sheet name or id '{sheet_name_or_sheet_id}' is not a string or an integer."
+            )
+
+        return self.delete_sheets_from_spreadsheet(spreadsheet_id, [sheet_id])
+
     def delete_sheets_from_spreadsheet(self, spreadsheet_id: str, ids_of_sheets_to_delete: list[int]) -> dict[str, Any]:
         """Delete one or many sheets from a spreadsheet by id.
 

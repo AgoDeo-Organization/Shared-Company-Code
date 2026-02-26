@@ -331,6 +331,58 @@ def test_get_sheet_id_from_sheet_name_converts_sheet_id_to_int(monkeypatch: pyte
 
 
 
+def test_delete_sheet_accepts_sheet_id_and_deletes_one_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """delete_sheet should delete one sheet when the input is a sheet id."""
+
+    service = _build_service(monkeypatch)
+    service.delete_sheets_from_spreadsheet = Mock(return_value={"done": True})
+
+    response = service.delete_sheet("spreadsheet-1", 55)
+
+    assert response == {"done": True}
+    service.delete_sheets_from_spreadsheet.assert_called_once_with("spreadsheet-1", [55])
+
+
+
+def test_delete_sheet_accepts_sheet_name_and_deletes_matching_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """delete_sheet should resolve sheet name to id before deleting."""
+
+    service = _build_service(monkeypatch)
+    service.get_sheet_id_from_sheet_name = Mock(return_value=77)
+    service.delete_sheets_from_spreadsheet = Mock(return_value={"done": True})
+
+    response = service.delete_sheet("spreadsheet-1", "Data")
+
+    assert response == {"done": True}
+    service.get_sheet_id_from_sheet_name.assert_called_once_with("spreadsheet-1", "Data")
+    service.delete_sheets_from_spreadsheet.assert_called_once_with("spreadsheet-1", [77])
+
+
+
+def test_delete_sheet_rejects_invalid_input_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    """delete_sheet should fail when input is not a string or an integer."""
+
+    service = _build_service(monkeypatch)
+
+    with pytest.raises(Exception, match="is not a string or an integer"):
+        service.delete_sheet("spreadsheet-1", ["bad"])  # type: ignore[arg-type]
+
+
+
+def test_delete_sheet_propagates_name_lookup_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """delete_sheet should raise when the provided sheet name is not found."""
+
+    service = _build_service(monkeypatch)
+    service.get_sheet_id_from_sheet_name = Mock(side_effect=Exception("was not found"))
+    service.delete_sheets_from_spreadsheet = Mock()
+
+    with pytest.raises(Exception, match="was not found"):
+        service.delete_sheet("spreadsheet-1", "Missing")
+
+    service.delete_sheets_from_spreadsheet.assert_not_called()
+
+
+
 def test_reorder_all_sheets_in_spreadsheet_rejects_duplicate_ids(monkeypatch: pytest.MonkeyPatch) -> None:
     """reorder_all_sheets_in_spreadsheet should reject duplicate ids in new order."""
 
