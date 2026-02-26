@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='julien-python-toolkit',
-    version='0.2.6',
+    version='0.2.7',
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     license='Custom Non-Commercial License',  # Reference your custom license
