@@ -523,6 +523,34 @@ class GoogleServices:
             error_content = f"HttpError from {self.get_sheet_names_from_sheet.__name__}: {error.content}".encode("utf-8")
             raise HttpError(resp=error.resp, content=error_content) from error
 
+    def get_sheet_id_from_sheet_name(self, spreadsheet_id: str, sheet_name: str) -> int:
+        """Return a sheet id using a sheet name.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to look up.
+
+        Returns:
+            The numeric Google sheet id for the matching sheet name.
+
+        Raises:
+            Exception: If ``sheet_name`` is not a string.
+            Exception: If the sheet name is not found in the spreadsheet.
+        """
+
+        if not isinstance(sheet_name, str):
+            raise Exception(f"Sheet name '{sheet_name}' is not a string.")
+
+        # Load metadata once, then find the sheet with the same title.
+        sheets_metadata = self.get_sheets_medatada_from_sheet(spreadsheet_id)
+
+        for sheet_metadata in sheets_metadata:
+            properties = sheet_metadata.get("properties", {})
+            if properties.get("title") == sheet_name:
+                return int(properties["sheetId"])
+
+        raise Exception(f"Sheet name '{sheet_name}' was not found in spreadsheet '{spreadsheet_id}'.")
+
     @retry_if_network_error
     def get_sheets_medatada_from_sheet(self, spreadsheet_id: str) -> list[dict[str, Any]]:
         """Return raw metadata entries for all sheets in a spreadsheet.
@@ -735,6 +763,9 @@ class GoogleServices:
             API response payload returned by Google Sheets.
         """
 
+        if not isinstance(source_sheet_id, int):
+            raise Exception(f"Source sheet id '{source_sheet_id}' is not an integer.")
+
         if not isinstance(insert_index, int):
             raise Exception(f"Insert index '{insert_index}' is not an integer.")
 
@@ -760,6 +791,32 @@ class GoogleServices:
         }
 
         return self.batch_update_spreadsheet(spreadsheet_id, request_body)
+
+    def delete_sheet(self, spreadsheet_id: str, sheet_name_or_sheet_id: str | int) -> dict[str, Any]:
+        """Delete one sheet using either its name or its id.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name_or_sheet_id: Sheet name (string) or sheet id (integer).
+
+        Returns:
+            API response payload returned by Google Sheets.
+
+        Raises:
+            Exception: If ``sheet_name_or_sheet_id`` is not a string or an integer.
+        """
+
+        # Accept both input styles to make calling code simpler.
+        if isinstance(sheet_name_or_sheet_id, str):
+            sheet_id = self.get_sheet_id_from_sheet_name(spreadsheet_id, sheet_name_or_sheet_id)
+        elif isinstance(sheet_name_or_sheet_id, int):
+            sheet_id = sheet_name_or_sheet_id
+        else:
+            raise Exception(
+                f"Sheet name or id '{sheet_name_or_sheet_id}' is not a string or an integer."
+            )
+
+        return self.delete_sheets_from_spreadsheet(spreadsheet_id, [sheet_id])
 
     def delete_sheets_from_spreadsheet(self, spreadsheet_id: str, ids_of_sheets_to_delete: list[int]) -> dict[str, Any]:
         """Delete one or many sheets from a spreadsheet by id.
