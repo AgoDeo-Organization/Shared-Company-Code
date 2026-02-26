@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 ## [0.2.7] - 2026-02-??
 
 ### Added
-- None
+- `get_sheet_id_from_sheet_name`: get sheet ID from sheet name
 
 ### Fixed
 - None
