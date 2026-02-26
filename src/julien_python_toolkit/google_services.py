@@ -523,6 +523,34 @@ class GoogleServices:
             error_content = f"HttpError from {self.get_sheet_names_from_sheet.__name__}: {error.content}".encode("utf-8")
             raise HttpError(resp=error.resp, content=error_content) from error
 
+    def get_sheet_id_from_sheet_name(self, spreadsheet_id: str, sheet_name: str) -> int:
+        """Return a sheet id using a sheet name.
+
+        Args:
+            spreadsheet_id: Target spreadsheet id.
+            sheet_name: Name of the sheet tab to look up.
+
+        Returns:
+            The numeric Google sheet id for the matching sheet name.
+
+        Raises:
+            Exception: If ``sheet_name`` is not a string.
+            Exception: If the sheet name is not found in the spreadsheet.
+        """
+
+        if not isinstance(sheet_name, str):
+            raise Exception(f"Sheet name '{sheet_name}' is not a string.")
+
+        # Load metadata once, then find the sheet with the same title.
+        sheets_metadata = self.get_sheets_medatada_from_sheet(spreadsheet_id)
+
+        for sheet_metadata in sheets_metadata:
+            properties = sheet_metadata.get("properties", {})
+            if properties.get("title") == sheet_name:
+                return int(properties["sheetId"])
+
+        raise Exception(f"Sheet name '{sheet_name}' was not found in spreadsheet '{spreadsheet_id}'.")
+
     @retry_if_network_error
     def get_sheets_medatada_from_sheet(self, spreadsheet_id: str) -> list[dict[str, Any]]:
         """Return raw metadata entries for all sheets in a spreadsheet.

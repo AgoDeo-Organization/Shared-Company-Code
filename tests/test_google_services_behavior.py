@@ -270,6 +270,67 @@ def test_delete_sheets_from_spreadsheet_builds_delete_requests(monkeypatch: pyte
 
 
 
+def test_get_sheet_id_from_sheet_name_returns_matching_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_sheet_id_from_sheet_name should return the sheet id for a matching title."""
+
+    service = _build_service(monkeypatch)
+    service.get_sheets_medatada_from_sheet = Mock(
+        return_value=[
+            {"properties": {"title": "Summary", "sheetId": 101}},
+            {"properties": {"title": "Data", "sheetId": 202}},
+        ]
+    )
+
+    sheet_id = service.get_sheet_id_from_sheet_name("spreadsheet-1", "Data")
+
+    assert sheet_id == 202
+    service.get_sheets_medatada_from_sheet.assert_called_once_with("spreadsheet-1")
+
+
+
+def test_get_sheet_id_from_sheet_name_rejects_non_string_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_sheet_id_from_sheet_name should fail when sheet name is not a string."""
+
+    service = _build_service(monkeypatch)
+
+    with pytest.raises(Exception, match="is not a string"):
+        service.get_sheet_id_from_sheet_name("spreadsheet-1", 123)  # type: ignore[arg-type]
+
+
+
+def test_get_sheet_id_from_sheet_name_raises_when_name_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_sheet_id_from_sheet_name should fail when the sheet name does not exist."""
+
+    service = _build_service(monkeypatch)
+    service.get_sheets_medatada_from_sheet = Mock(
+        return_value=[
+            {"properties": {"title": "Summary", "sheetId": 101}},
+            {"properties": {"title": "Data", "sheetId": 202}},
+        ]
+    )
+
+    with pytest.raises(Exception, match="was not found"):
+        service.get_sheet_id_from_sheet_name("spreadsheet-1", "Missing")
+
+
+
+def test_get_sheet_id_from_sheet_name_converts_sheet_id_to_int(monkeypatch: pytest.MonkeyPatch) -> None:
+    """get_sheet_id_from_sheet_name should always return an integer sheet id."""
+
+    service = _build_service(monkeypatch)
+    service.get_sheets_medatada_from_sheet = Mock(
+        return_value=[
+            {"properties": {"title": "Data", "sheetId": "202"}},
+        ]
+    )
+
+    sheet_id = service.get_sheet_id_from_sheet_name("spreadsheet-1", "Data")
+
+    assert sheet_id == 202
+    assert isinstance(sheet_id, int)
+
+
+
 def test_reorder_all_sheets_in_spreadsheet_rejects_duplicate_ids(monkeypatch: pytest.MonkeyPatch) -> None:
     """reorder_all_sheets_in_spreadsheet should reject duplicate ids in new order."""
 
