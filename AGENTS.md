@@ -1,6 +1,6 @@
 # AI Agent Operating Rules for This Repository
 
-*Version 0.1.0*
+*Version 0.1.1*
 
 ## 1. Purpose
 
@@ -14,6 +14,9 @@ Agents must follow these rules strictly.
 - Keep the code **simple**. The people interacting with this repository are not necessairly advanced programmers
 - Make the code human readable (e.g. use `orders_last_day` instead of `o`)
 - Use comments frequently, especially for higher level logic.
+- When you are modifying code, do not fix formatting of current code to avoid too many diff lines (e.g. ignore long lines)
+- Only do exactly what you are told to do. Do NOT proactively fix mypy errors, lint errors, formatting errors, docstrings, docs, implement tests. You must always ask or suggest.
+- Always make minimal changes to keep diff simple. First change the code, and then ask if you can also fix mypy errors, lint errors, formatting errors, ...
 - Any text (docs, docstrings, comments) must be explained in simple language, assuming reader is **12 years old**. Only keep technical terms (e.g. API, method, ...)
 
 ## 2. General Project Structure
