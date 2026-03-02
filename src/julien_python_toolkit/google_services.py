@@ -3,7 +3,6 @@
 # You may not use this file for commercial purposes without
 # explicit permission from the author.
 
-
 import json
 import os
 import socket
@@ -21,6 +20,15 @@ from googleapiclient.errors import HttpError  # type: ignore[import-untyped]
 from googleapiclient.http import MediaFileUpload  # type: ignore[import-untyped]
 
 from . import log_utilities
+
+# NOTE: 2D array data formatting is as such:
+#
+#       data = [
+#           ["Name", "Age", "City"],
+#           ["Alice", 25, "Paris"],
+#           ["Bob", 30, "London"],
+#           ["Charlie", 35, "Berlin"]
+#       ]
 
 
 # Global Variables
